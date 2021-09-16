@@ -18,7 +18,7 @@
 
 #define PLUGIN_NAME "email"
 
-const char * def_cfg = QUOTE({
+static const char * def_cfg = QUOTE({
 	"plugin" : { 
 		"description" : "Email notification plugin",
 		"type" : "string",
