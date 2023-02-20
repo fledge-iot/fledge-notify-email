@@ -38,6 +38,34 @@ static const char * def_cfg = QUOTE({
 		"order" : "2",
 		"displayName" : "To "
 		},
+	"email_cc" : {
+		"description" : "The address to send the alert to Cc",
+		"type" : "string",
+		"default" : "alert.subscriber@dianomic.com",
+		"order" : "1",
+		"displayName" : "Cc address"
+		},
+	"email_cc_name" : {
+		"description" : "The name to send the alert to Cc",
+		"type" : "string",
+		"default" : "Notification alert subscriber",
+		"order" : "2",
+		"displayName" : "Cc "
+		},
+	"email_bcc" : {
+		"description" : "The address to send the alert to Bcc",
+		"type" : "string",
+		"default" : "alert.subscriber@dianomic.com",
+		"order" : "1",
+		"displayName" : "Bcc address"
+		},
+	"email_bcc_name" : {
+		"description" : "The name to send the alert to Bcc",
+		"type" : "string",
+		"default" : "Notification alert subscriber",
+		"order" : "2",
+		"displayName" : "Bcc "
+		},	
 	"subject" : {
 		"description" : "The email subject",
 		"type" : "string",
@@ -147,6 +175,10 @@ void resetConfig(EmailCfg *emailCfg)
 	emailCfg->email_from_name = "";
 	emailCfg->email_to = "";
 	emailCfg->email_to_name = "";
+	emailCfg->email_cc = "";
+	emailCfg->email_cc_name = "";
+	emailCfg->email_bcc = "";
+	emailCfg->email_bcc_name = "";
 	emailCfg->server = "";
 	emailCfg->port = 0;
 	emailCfg->subject = "";
@@ -188,6 +220,22 @@ void parseConfig(ConfigCategory *config, EmailCfg *emailCfg)
 	if (config->itemExists("email_to_name"))
 	{
 		emailCfg->email_to_name = config->getValue("email_to_name");
+	}
+	if (config->itemExists("email_cc"))
+	{
+		emailCfg->email_cc = config->getValue("email_cc");
+	}
+	if (config->itemExists("email_cc_name"))
+	{
+		emailCfg->email_cc_name = config->getValue("email_cc_name");
+	}
+	if (config->itemExists("email_bcc"))
+	{
+		emailCfg->email_bcc = config->getValue("email_bcc");
+	}
+	if (config->itemExists("email_bcc_name"))
+	{
+		emailCfg->email_bcc_name = config->getValue("email_bcc_name");
 	}
 	if (config->itemExists("server"))
 	{

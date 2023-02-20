@@ -54,6 +54,7 @@ void compose_payload(vector<std::string>* &payload, const EmailCfg *emailCfg, co
 {
 	payload->push_back("Date: " + string(getCurrTime()) + "\r\n");
 	payload->push_back("To: " + emailCfg->email_to_name + " <" + emailCfg->email_to + "> \r\n");
+	payload->push_back("Cc: " + emailCfg->email_cc_name + " <" + emailCfg->email_cc + "> \r\n");
 	payload->push_back("From: " + emailCfg->email_from_name + " <" + emailCfg->email_from + "> \r\n");
 	//payload->push_back("Message-ID: <" + emailCfg->messageId + ">\r\n");
 	payload->push_back("Subject: " + emailCfg->subject + "\r\n");
@@ -122,7 +123,13 @@ int sendEmailMsg(const EmailCfg *emailCfg, const char *msg)
     curl_easy_setopt(curl, CURLOPT_MAIL_FROM, email_from.c_str());
 
     string email_to = "<" + emailCfg->email_to + ">";
+    string email_cc = "<" + emailCfg->email_cc + ">";
+    string email_bcc = "<" + emailCfg->email_bcc + ">";
     recipients = curl_slist_append(recipients, email_to.c_str());
+	if (!email_cc.empty())
+		recipients = curl_slist_append(recipients, email_cc.c_str());
+	if(!email_bcc.empty())
+		recipients = curl_slist_append(recipients, email_bcc.c_str());
     //recipients = curl_slist_append(recipients, CC_ADDR);
     curl_easy_setopt(curl, CURLOPT_MAIL_RCPT, recipients);
 
