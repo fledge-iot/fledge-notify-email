@@ -86,7 +86,7 @@ static const char * def_cfg = QUOTE({
 		"type" : "string",
 		"displayName" : "Subject",
 		"order" : "9",
-		"default" : "Fledge alert notification triggerd by $NOTIFICATION_INSTANCE_NAME$ "
+		"default" : "Fledge alert notification sent by $NOTIFICATION_INSTANCE_NAME$ "
 		},
 	"server" : {
 		"description" : "The SMTP server name/address",
