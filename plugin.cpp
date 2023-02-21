@@ -14,6 +14,7 @@
 #include <logger.h>
 #include <email_config.h>
 #include <version.h>
+#include <string_utils.h>
 
 
 #define PLUGIN_NAME "email"
@@ -27,100 +28,77 @@ static const char * def_cfg = QUOTE({
 	"email_to" : {
 		"description" : "The address to send the alert to",
 		"type" : "string",
-		"default" : "alert.subscriber@dianomic.com",
+		"default" : "Notification alert subscriber <alert.subscriber@dianomic.com>",
 		"order" : "1",
-		"displayName" : "To address"
-		},
-	"email_to_name" : {
-		"description" : "The name to send the alert to",
-		"type" : "string",
-		"default" : "Notification alert subscriber",
-		"order" : "2",
-		"displayName" : "To "
+		"displayName" : "To"
 		},
 	"email_cc" : {
 		"description" : "The address to send the alert to Cc",
 		"type" : "string",
-		"default" : "alert.subscriber@dianomic.com",
-		"order" : "1",
-		"displayName" : "Cc address"
-		},
-	"email_cc_name" : {
-		"description" : "The name to send the alert to Cc",
-		"type" : "string",
-		"default" : "Notification alert subscriber",
+		"default" : "Notification alert subscriber <alert.subscriber@dianomic.com>",
 		"order" : "2",
-		"displayName" : "Cc "
+		"displayName" : "CC"
 		},
 	"email_bcc" : {
 		"description" : "The address to send the alert to Bcc",
 		"type" : "string",
-		"default" : "alert.subscriber@dianomic.com",
-		"order" : "1",
-		"displayName" : "Bcc address"
-		},
-	"email_bcc_name" : {
-		"description" : "The name to send the alert to Bcc",
-		"type" : "string",
-		"default" : "Notification alert subscriber",
-		"order" : "2",
-		"displayName" : "Bcc "
-		},	
-	"subject" : {
-		"description" : "The email subject",
-		"type" : "string",
-		"displayName" : "Subject",
+		"default" : "Notification alert subscriber <alert.subscriber@dianomic.com>",
 		"order" : "3",
-		"default" : "Fledge alert notification"
+		"displayName" : "BCC"
 		},
 	"email_from" : {
 		"description" : "The address the email will come from",
 		"type" : "string",
 		"displayName" : "From address",
-		"default" : "dianomic.alerts@gmail.com",
+		"default" : "Notification Alert <dianomic.alerts@gmail.com>",
 		"order" : "4"
 		},
-	"email_from_name" : {
-		"description" : "The name used to send the alert email",
+	"subject" : {
+		"description" : "The email subject. Macro $NOTIFICATION_INSTANCE_NAME$ can be used to provide information about notification instance name",
 		"type" : "string",
-		"default" : "Notification alert", 
-		"displayName" : "From name",
-		"order" : "5"
+		"displayName" : "Subject",
+		"order" : "5",
+		"default" : "Fledge alert notification triggerd by $NOTIFICATION_INSTANCE_NAME$ "
 		},
 	"server" : {
 		"description" : "The SMTP server name/address",
 		"type" : "string",
 		"displayName" : "SMTP Server",
 		"order" : "6",
-		"default" : "smtp.gmail.com"
+		"default" : "smtp.gmail.com",
+		"group" : "SMTP Details"
 		},
 	"port" : {
 		"description" : "The SMTP server port",
 		"type" : "integer",
 		"displayName" : "SMTP Port",
 		"order" : "7",
-		"default" : "587"
+		"default" : "587",
+		"group" : "SMTP Details"
 		},
 	"use_ssl_tls" : {
 		"description" : "Use SSL/TLS for email transfer",
 		"type" : "boolean",
 		"displayName" : "SSL/TLS",
 		"order" : "8",
-		"default" : "true"
+		"default" : "true",
+		"group" : "SMTP Details"
 		},
 	"username" : {
 		"description" : "Email account name",
 		"type" : "string",
 		"displayName" : "Username",
 		"order" : "9",
-		"default" : "dianomic.alerts@gmail.com"
+		"default" : "dianomic.alerts@gmail.com",
+		"group" : "SMTP Details"
 		},
 	"password" : {
 		"description" : "Email account password",
-		"type" : "string",
+		"type" : "password",
 		"displayName" : "Password",
 		"order" : "10",
-		"default" : "pass"
+		"default" : "pass",
+		"group" : "SMTP Details"
 		},
 	"enable": {
 		"description": "A switch that can be used to enable or disable execution of the email notification plugin.",
@@ -172,13 +150,9 @@ PLUGIN_INFORMATION *plugin_info()
 void resetConfig(EmailCfg *emailCfg)
 {
 	emailCfg->email_from = "";
-	emailCfg->email_from_name = "";
 	emailCfg->email_to = "";
-	emailCfg->email_to_name = "";
 	emailCfg->email_cc = "";
-	emailCfg->email_cc_name = "";
 	emailCfg->email_bcc = "";
-	emailCfg->email_bcc_name = "";
 	emailCfg->server = "";
 	emailCfg->port = 0;
 	emailCfg->subject = "";
@@ -192,9 +166,9 @@ void resetConfig(EmailCfg *emailCfg)
  */
 void printConfig(EmailCfg *emailCfg)
 {
-	Logger::getLogger()->info("email_from=%s, email_from_name=%s, email_to=%s, email_to_name=%s",
-						emailCfg->email_from.c_str(), emailCfg->email_from_name.c_str(), 
-						emailCfg->email_to.c_str(), emailCfg->email_to_name.c_str());
+	Logger::getLogger()->info("email_from=%s,  email_to=%s",
+						emailCfg->email_from.c_str(), 
+						emailCfg->email_to.c_str());
 	Logger::getLogger()->info("server=%s, port=%d, subject=%s, use_ssl_tls=%s, username=%s, password=%s",
 						emailCfg->server.c_str(), emailCfg->port, emailCfg->subject.c_str(), 
 						emailCfg->use_ssl_tls?"true":"false", emailCfg->username.c_str(), emailCfg->password.c_str());
@@ -209,33 +183,17 @@ void parseConfig(ConfigCategory *config, EmailCfg *emailCfg)
 	{
 		emailCfg->email_from = config->getValue("email_from");
 	}
-	if (config->itemExists("email_from_name"))
-	{
-		emailCfg->email_from_name = config->getValue("email_from_name");
-	}
 	if (config->itemExists("email_to"))
 	{
 		emailCfg->email_to = config->getValue("email_to");
-	}
-	if (config->itemExists("email_to_name"))
-	{
-		emailCfg->email_to_name = config->getValue("email_to_name");
 	}
 	if (config->itemExists("email_cc"))
 	{
 		emailCfg->email_cc = config->getValue("email_cc");
 	}
-	if (config->itemExists("email_cc_name"))
-	{
-		emailCfg->email_cc_name = config->getValue("email_cc_name");
-	}
 	if (config->itemExists("email_bcc"))
 	{
 		emailCfg->email_bcc = config->getValue("email_bcc");
-	}
-	if (config->itemExists("email_bcc_name"))
-	{
-		emailCfg->email_bcc_name = config->getValue("email_bcc_name");
 	}
 	if (config->itemExists("server"))
 	{
@@ -318,7 +276,7 @@ bool plugin_deliver(PLUGIN_HANDLE handle,
 	Logger::getLogger()->info("Email notification plugin_deliver(): deliveryName=%s, notificationName=%s, triggerReason=%s, message=%s",
 							deliveryName.c_str(), notificationName.c_str(), triggerReason.c_str(), message.c_str());
 	PLUGIN_INFO *info = (PLUGIN_INFO *) handle;
-	
+	StringReplace(info->emailCfg.subject, "$NOTIFICATION_INSTANCE_NAME$", notificationName);
 	int rv = sendEmailMsg(&info->emailCfg, message.c_str());
 	if (rv)
 	{
