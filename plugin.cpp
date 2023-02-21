@@ -28,84 +28,112 @@ static const char * def_cfg = QUOTE({
 	"email_to" : {
 		"description" : "The address to send the alert to",
 		"type" : "string",
-		"default" : "Notification alert subscriber <alert.subscriber@dianomic.com>",
+		"default" : "alert.subscriber@dianomic.com",
 		"order" : "1",
-		"displayName" : "To"
+		"displayName" : "To address"
+		},
+	"email_to_name" : {
+		"description" : "The name to send the alert to",
+		"type" : "string",
+		"default" : "Notification alert subscriber",
+		"order" : "2",
+		"displayName" : "To name"
 		},
 	"email_cc" : {
-		"description" : "The address to send the alert to Cc",
+		"description" : "The address to send the alert cc",
 		"type" : "string",
-		"default" : "Notification alert subscriber <alert.subscriber@dianomic.com>",
-		"order" : "2",
-		"displayName" : "CC"
+		"default" : "alert.subscriber@dianomic.com",
+		"order" : "3",
+		"displayName" : "CC address"
+		},
+	"email_cc_name" : {
+		"description" : "The name to send the alert CC",
+		"type" : "string",
+		"default" : "Notification alert subscriber",
+		"order" : "4",
+		"displayName" : "CC name"
 		},
 	"email_bcc" : {
-		"description" : "The address to send the alert to Bcc",
+		"description" : "The address to send the alert BCC",
 		"type" : "string",
-		"default" : "Notification alert subscriber <alert.subscriber@dianomic.com>",
-		"order" : "3",
-		"displayName" : "BCC"
+		"default" : "alert.subscriber@dianomic.com",
+		"order" : "5",
+		"displayName" : "BCC address"
+		},
+	"email_bcc_name" : {
+		"description" : "The name to send the alert BCC",
+		"type" : "string",
+		"default" : "Notification alert subscriber",
+		"order" : "6",
+		"displayName" : "BCC name"
 		},
 	"email_from" : {
 		"description" : "The address the email will come from",
 		"type" : "string",
 		"displayName" : "From address",
-		"default" : "Notification Alert <dianomic.alerts@gmail.com>",
-		"order" : "4"
+		"default" : "dianomic.alerts@gmail.com",
+		"order" : "7"
+		},
+	"email_from_name" : {
+		"description" : "The name used to send the alert email",
+		"type" : "string",
+		"default" : "Notification alert", 
+		"displayName" : "From name",
+		"order" : "8"
 		},
 	"subject" : {
 		"description" : "The email subject. Macro $NOTIFICATION_INSTANCE_NAME$ can be used to provide information about notification instance name",
 		"type" : "string",
 		"displayName" : "Subject",
-		"order" : "5",
+		"order" : "9",
 		"default" : "Fledge alert notification triggerd by $NOTIFICATION_INSTANCE_NAME$ "
 		},
 	"server" : {
 		"description" : "The SMTP server name/address",
 		"type" : "string",
 		"displayName" : "SMTP Server",
-		"order" : "6",
+		"order" : "10",
 		"default" : "smtp.gmail.com",
-		"group" : "SMTP Details"
+		"group" : "Mail Server"
 		},
 	"port" : {
 		"description" : "The SMTP server port",
 		"type" : "integer",
 		"displayName" : "SMTP Port",
-		"order" : "7",
+		"order" : "11",
 		"default" : "587",
-		"group" : "SMTP Details"
+		"group" : "Mail Server"
 		},
 	"use_ssl_tls" : {
 		"description" : "Use SSL/TLS for email transfer",
 		"type" : "boolean",
 		"displayName" : "SSL/TLS",
-		"order" : "8",
+		"order" : "12",
 		"default" : "true",
-		"group" : "SMTP Details"
+		"group" : "Mail Server"
 		},
 	"username" : {
 		"description" : "Email account name",
 		"type" : "string",
 		"displayName" : "Username",
-		"order" : "9",
+		"order" : "13",
 		"default" : "dianomic.alerts@gmail.com",
-		"group" : "SMTP Details"
+		"group" : "Mail Server"
 		},
 	"password" : {
 		"description" : "Email account password",
 		"type" : "password",
 		"displayName" : "Password",
-		"order" : "10",
+		"order" : "14",
 		"default" : "pass",
-		"group" : "SMTP Details"
+		"group" : "Mail Server"
 		},
 	"enable": {
 		"description": "A switch that can be used to enable or disable execution of the email notification plugin.",
 		"type": "boolean",
 		"displayName" : "Enabled",
 		"default": "false", 
-		"order" : "11" }
+		"order" : "15" }
 	});
 
 using namespace std;
@@ -150,9 +178,13 @@ PLUGIN_INFORMATION *plugin_info()
 void resetConfig(EmailCfg *emailCfg)
 {
 	emailCfg->email_from = "";
+	emailCfg->email_from_name = "";
 	emailCfg->email_to = "";
+	emailCfg->email_to_name = "";
 	emailCfg->email_cc = "";
+	emailCfg->email_cc_name = "";
 	emailCfg->email_bcc = "";
+	emailCfg->email_bcc_name = "";
 	emailCfg->server = "";
 	emailCfg->port = 0;
 	emailCfg->subject = "";
@@ -183,17 +215,33 @@ void parseConfig(ConfigCategory *config, EmailCfg *emailCfg)
 	{
 		emailCfg->email_from = config->getValue("email_from");
 	}
+	if (config->itemExists("email_from_name"))
+	{
+		emailCfg->email_from_name = config->getValue("email_from_name");
+	}
 	if (config->itemExists("email_to"))
 	{
 		emailCfg->email_to = config->getValue("email_to");
+	}
+	if (config->itemExists("email_to_name"))
+	{
+		emailCfg->email_to_name = config->getValue("email_to_name");
 	}
 	if (config->itemExists("email_cc"))
 	{
 		emailCfg->email_cc = config->getValue("email_cc");
 	}
+	if (config->itemExists("email_cc_name"))
+	{
+		emailCfg->email_cc_name = config->getValue("email_cc_name");
+	}
 	if (config->itemExists("email_bcc"))
 	{
 		emailCfg->email_bcc = config->getValue("email_bcc");
+	}
+	if (config->itemExists("email_bcc_name"))
+	{
+		emailCfg->email_bcc_name = config->getValue("email_bcc_name");
 	}
 	if (config->itemExists("server"))
 	{
