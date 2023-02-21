@@ -86,13 +86,22 @@ static const char * def_cfg = QUOTE({
 		"type" : "string",
 		"displayName" : "Subject",
 		"order" : "9",
-		"default" : "Fledge alert notification sent by $NOTIFICATION_INSTANCE_NAME$ "
+		"default" : "Fledge alert notification sent by $NOTIFICATION_INSTANCE_NAME$ ",
+		"group" : "Message"
 		},
+	"email_body" : {
+		"description" : "The email body",
+		"type" : "string",
+		"displayName" : "Body",
+		"order" : "10",
+		"default" : "Notification alert",
+		"group" : "Message"
+		},	
 	"server" : {
 		"description" : "The SMTP server name/address",
 		"type" : "string",
 		"displayName" : "SMTP Server",
-		"order" : "10",
+		"order" : "11",
 		"default" : "smtp.gmail.com",
 		"group" : "Mail Server"
 		},
@@ -100,7 +109,7 @@ static const char * def_cfg = QUOTE({
 		"description" : "The SMTP server port",
 		"type" : "integer",
 		"displayName" : "SMTP Port",
-		"order" : "11",
+		"order" : "12",
 		"default" : "587",
 		"group" : "Mail Server"
 		},
@@ -108,7 +117,7 @@ static const char * def_cfg = QUOTE({
 		"description" : "Use SSL/TLS for email transfer",
 		"type" : "boolean",
 		"displayName" : "SSL/TLS",
-		"order" : "12",
+		"order" : "13",
 		"default" : "true",
 		"group" : "Mail Server"
 		},
@@ -116,7 +125,7 @@ static const char * def_cfg = QUOTE({
 		"description" : "Email account name",
 		"type" : "string",
 		"displayName" : "Username",
-		"order" : "13",
+		"order" : "14",
 		"default" : "dianomic.alerts@gmail.com",
 		"group" : "Mail Server"
 		},
@@ -133,7 +142,7 @@ static const char * def_cfg = QUOTE({
 		"type": "boolean",
 		"displayName" : "Enabled",
 		"default": "false", 
-		"order" : "15" }
+		"order" : "16" }
 	});
 
 using namespace std;
@@ -185,6 +194,7 @@ void resetConfig(EmailCfg *emailCfg)
 	emailCfg->email_cc_name = "";
 	emailCfg->email_bcc = "";
 	emailCfg->email_bcc_name = "";
+	emailCfg->email_body = "";
 	emailCfg->server = "";
 	emailCfg->port = 0;
 	emailCfg->subject = "";
@@ -242,6 +252,10 @@ void parseConfig(ConfigCategory *config, EmailCfg *emailCfg)
 	if (config->itemExists("email_bcc_name"))
 	{
 		emailCfg->email_bcc_name = config->getValue("email_bcc_name");
+	}
+	if (config->itemExists("email_body"))
+	{
+		emailCfg->email_body = config->getValue("email_body");
 	}
 	if (config->itemExists("server"))
 	{
@@ -325,7 +339,7 @@ bool plugin_deliver(PLUGIN_HANDLE handle,
 							deliveryName.c_str(), notificationName.c_str(), triggerReason.c_str(), message.c_str());
 	PLUGIN_INFO *info = (PLUGIN_INFO *) handle;
 	StringReplace(info->emailCfg.subject, "$NOTIFICATION_INSTANCE_NAME$", notificationName);
-	int rv = sendEmailMsg(&info->emailCfg, message.c_str());
+	int rv = sendEmailMsg(&info->emailCfg, info->emailCfg.email_body.c_str());
 	if (rv)
 	{
 		Logger::getLogger()->error("Email notification failed: sendEmailMsg() returned %d, %s", rv, errorString(rv));
