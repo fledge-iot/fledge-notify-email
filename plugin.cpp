@@ -40,30 +40,30 @@ static const char * def_cfg = QUOTE({
 		"displayName" : "To name"
 		},
 	"email_cc" : {
-		"description" : "The address to send the alert cc",
+		"description" : "The comma separated address list to send the CC alert",
 		"type" : "string",
-		"default" : "alert.subscriber@dianomic.com",
+		"default" : "",
 		"order" : "3",
 		"displayName" : "CC address"
 		},
 	"email_cc_name" : {
-		"description" : "The name to send the alert CC",
+		"description" : "The comma separated name list to send the CC alert",
 		"type" : "string",
-		"default" : "Notification alert subscriber",
+		"default" : "",
 		"order" : "4",
 		"displayName" : "CC name"
 		},
 	"email_bcc" : {
-		"description" : "The address to send the alert BCC",
+		"description" : "The comma separated address list to send the BCC alert",
 		"type" : "string",
-		"default" : "alert.subscriber@dianomic.com",
+		"default" : "",
 		"order" : "5",
 		"displayName" : "BCC address"
 		},
 	"email_bcc_name" : {
-		"description" : "The name to send the alert BCC",
+		"description" : "The comma separated name list to send the BCC alert",
 		"type" : "string",
-		"default" : "Notification alert subscriber",
+		"default" : "",
 		"order" : "6",
 		"displayName" : "BCC name"
 		},
