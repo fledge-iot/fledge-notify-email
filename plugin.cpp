@@ -134,7 +134,7 @@ static const char * def_cfg = QUOTE({
 		"description" : "Email account password",
 		"type" : "password",
 		"displayName" : "Password",
-		"order" : "14",
+		"order" : "15",
 		"default" : "pass",
 		"group" : "Mail Server"
 		},
@@ -314,7 +314,7 @@ PLUGIN_HANDLE plugin_init(ConfigCategory* config)
 		
 		if ( toAddress.size() != toNames.size() )
 		{
-			Logger::getLogger()->error("There is mistach between To address and To names count");
+			Logger::getLogger()->error("There is mistach between To address and To names count, exiting...");
 			delete info;
 			info = NULL;
 			return (PLUGIN_HANDLE)info;
@@ -326,7 +326,7 @@ PLUGIN_HANDLE plugin_init(ConfigCategory* config)
 		
 		if ( ccAddress.size() != ccNames.size() )
 		{
-			Logger::getLogger()->error("There is mistach between cc address and cc names count");
+			Logger::getLogger()->error("There is mistach between cc address and cc names count, exiting...");
 			delete info;
 			info = NULL;
 			return (PLUGIN_HANDLE)info;
@@ -338,7 +338,7 @@ PLUGIN_HANDLE plugin_init(ConfigCategory* config)
 		
 		if ( bccAddress.size() != bccNames.size() )
 		{
-			Logger::getLogger()->error("There is mistach between bcc address and bcc names count");
+			Logger::getLogger()->error("There is mistach between bcc address and bcc names count, exiting...");
 			delete info;
 			info = NULL;
 			return (PLUGIN_HANDLE)info;
