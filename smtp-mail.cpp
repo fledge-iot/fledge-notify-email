@@ -29,6 +29,7 @@
 #include <logger.h>
 #include <regex>
 #include <iterator>
+#include "string_utils.h"
 
 using namespace std;
 
@@ -70,14 +71,33 @@ std::vector<std::string> stringTokenize(std::string searchString ,std::regex sea
 void compose_payload(vector<std::string>* &payload, const EmailCfg *emailCfg, const char* msg)
 {
 	payload->push_back("Date: " + string(getCurrTime()) + "\r\n");
-	payload->push_back("To: " + emailCfg->email_to_name + " <" + emailCfg->email_to + "> \r\n");
 	
 	// Parse address and name to compose CC pairs for payload
 	std::regex searhPattern("[^\\,]+");
+	if (!emailCfg->email_to.empty())
+	{
+		std::vector<string> toAddress =  stringTokenize(emailCfg->email_to,searhPattern);
+		std::vector<string> toNames =  stringTokenize(emailCfg->email_to_name,searhPattern);
+		
+		std::string ToList = {"To: "};
+		for(int i = 0; i < toAddress.size(); i++ )
+		{
+			if (i > 0)
+			{
+				ToList.append(",");
+			}
+			ToList.append(toNames[i] + " <" + toAddress[i] + ">");
+		}
+		ToList.append(" \r\n");
+		payload->push_back(ToList);
+		
+	}
+
 	if (!emailCfg->email_cc.empty())
 	{
 		std::vector<string> ccAddress =  stringTokenize(emailCfg->email_cc,searhPattern);
 		std::vector<string> ccNames =  stringTokenize(emailCfg->email_cc_name,searhPattern);
+		
 		std::string CCList = {"CC: "};
 		for(int i = 0; i < ccAddress.size(); i++ )
 		{
@@ -89,6 +109,7 @@ void compose_payload(vector<std::string>* &payload, const EmailCfg *emailCfg, co
 		}
 		CCList.append(" \r\n");
 		payload->push_back(CCList);
+		
 	}
 	
 	// Do not add BCC payload otherwise it will be visible to all the recipients
@@ -159,18 +180,25 @@ int sendEmailMsg(const EmailCfg *emailCfg, const char *msg)
     string email_from = "<" + emailCfg->email_from + ">";
     curl_easy_setopt(curl, CURLOPT_MAIL_FROM, email_from.c_str());
 	
-    string email_to = "<" + emailCfg->email_to + ">";
-    recipients = curl_slist_append(recipients, email_to.c_str());
-
-	// Parse CC and BCC list to append recipients
+    // Parse CC and BCC list to append recipients
 	std::regex searhPattern("[^\\,]+");
+
+	if (!emailCfg->email_to.empty())
+	{
+		std::vector<string> toAddress =  stringTokenize(emailCfg->email_to,searhPattern);
+		for(auto it =  toAddress.begin(); it != toAddress.end(); it++ )
+		{
+			string email_to = "<" + StringStripWhiteSpacesAll(*it) + ">";
+			recipients = curl_slist_append(recipients, email_to.c_str() );
+		}
+	}
 
 	if (!emailCfg->email_cc.empty())
 	{
 		std::vector<string> ccAddress =  stringTokenize(emailCfg->email_cc,searhPattern);
 		for(auto it =  ccAddress.begin(); it != ccAddress.end(); it++ )
 		{
-			string email_cc = "<" + *it + ">";
+			string email_cc = "<" + StringStripWhiteSpacesAll(*it) + ">";
 			recipients = curl_slist_append(recipients, email_cc.c_str() );
 		}
 	}
@@ -180,7 +208,7 @@ int sendEmailMsg(const EmailCfg *emailCfg, const char *msg)
 		std::vector<string> bccAddress =  stringTokenize(emailCfg->email_bcc,searhPattern);
 		for(auto it =  bccAddress.begin(); it != bccAddress.end(); it++ )
 		{
-			string email_bcc = "<" + *it + ">";
+			string email_bcc = "<" + StringStripWhiteSpacesAll(*it) + ">";
 			recipients = curl_slist_append(recipients, email_bcc.c_str() );
 		}
 	}

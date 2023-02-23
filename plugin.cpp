@@ -15,6 +15,7 @@
 #include <email_config.h>
 #include <version.h>
 #include <string_utils.h>
+#include <regex>
 
 
 #define PLUGIN_NAME "email"
@@ -26,14 +27,14 @@ static const char * def_cfg = QUOTE({
 		"default" : PLUGIN_NAME,
 		"readonly" : "true" },
 	"email_to" : {
-		"description" : "The address to send the alert to",
+		"description" : "The comma separated address list to send the alert to",
 		"type" : "string",
 		"default" : "alert.subscriber@dianomic.com",
 		"order" : "1",
 		"displayName" : "To address"
 		},
 	"email_to_name" : {
-		"description" : "The name to send the alert to",
+		"description" : "The comma separated name list to send the alert to",
 		"type" : "string",
 		"default" : "Notification alert subscriber",
 		"order" : "2",
@@ -42,28 +43,28 @@ static const char * def_cfg = QUOTE({
 	"email_cc" : {
 		"description" : "The comma separated address list to send the CC alert",
 		"type" : "string",
-		"default" : "",
+		"default" : "alert.subscriber@dianomic.com",
 		"order" : "3",
 		"displayName" : "CC address"
 		},
 	"email_cc_name" : {
 		"description" : "The comma separated name list to send the CC alert",
 		"type" : "string",
-		"default" : "",
+		"default" : "Notification alert subscriber",
 		"order" : "4",
 		"displayName" : "CC name"
 		},
 	"email_bcc" : {
 		"description" : "The comma separated address list to send the BCC alert",
 		"type" : "string",
-		"default" : "",
+		"default" : "alert.subscriber@dianomic.com",
 		"order" : "5",
 		"displayName" : "BCC address"
 		},
 	"email_bcc_name" : {
 		"description" : "The comma separated name list to send the BCC alert",
 		"type" : "string",
-		"default" : "",
+		"default" : "Notification alert subscriber",
 		"order" : "6",
 		"displayName" : "BCC name"
 		},
@@ -163,6 +164,7 @@ typedef struct
 
 extern int sendEmailMsg(const EmailCfg *emailCfg, const char *msg);
 extern char *errorString(int result);
+extern std::vector<std::string> stringTokenize(std::string searchString ,std::regex searchPattern);
 
 /**
  * Return the information about this plugin
@@ -280,6 +282,7 @@ PLUGIN_HANDLE plugin_init(ConfigCategory* config)
 {
 	PLUGIN_INFO *info = new PLUGIN_INFO;
 
+
 	// Handle plugin configuration
 	if (config)
 	{
@@ -289,11 +292,50 @@ PLUGIN_HANDLE plugin_init(ConfigCategory* config)
 		parseConfig(config, &info->emailCfg);
 		printConfig(&info->emailCfg);
 		
+		std::regex searhPattern("[^\\,]+");
+
+		// Check if To address and To Names have same count
+		std::vector<string> toAddress =  stringTokenize(info->emailCfg.email_to,searhPattern);
+		std::vector<string> toNames =  stringTokenize(info->emailCfg.email_to_name,searhPattern);
+		
+		if ( toAddress.size() != toNames.size() )
+		{
+			Logger::getLogger()->error("There is mistach between To address and To names count");
+			delete info;
+			info = NULL;
+			return (PLUGIN_HANDLE)info;
+		}
+
+		// Check if CC address and CC Names have same count
+		std::vector<string> ccAddress =  stringTokenize(info->emailCfg.email_cc,searhPattern);
+		std::vector<string> ccNames =  stringTokenize(info->emailCfg.email_cc_name,searhPattern);
+		
+		if ( ccAddress.size() != ccNames.size() )
+		{
+			Logger::getLogger()->error("There is mistach between cc address and cc names count");
+			delete info;
+			info = NULL;
+			return (PLUGIN_HANDLE)info;
+		}
+		
+		// Check if BCC address and BCC Names have same count
+		std::vector<string> bccAddress =  stringTokenize(info->emailCfg.email_bcc,searhPattern);
+		std::vector<string> bccNames =  stringTokenize(info->emailCfg.email_bcc_name,searhPattern);
+		
+		if ( bccAddress.size() != bccNames.size() )
+		{
+			Logger::getLogger()->error("There is mistach between bcc address and bcc names count");
+			delete info;
+			info = NULL;
+			return (PLUGIN_HANDLE)info;
+		}
+		
 		if (info->emailCfg.email_to == "" || info->emailCfg.server == "" || info->emailCfg.port == 0)
 		{
 			Logger::getLogger()->error("Config for email notification plugin is incomplete, exiting...");
 			delete info;
 			info = NULL;
+			return (PLUGIN_HANDLE)info;
 		}
 	}
 	else
