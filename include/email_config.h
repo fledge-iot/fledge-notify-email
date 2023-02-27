@@ -19,6 +19,7 @@ struct EmailCfg {
 	std::string email_cc_name;
 	std::string email_bcc;
 	std::string email_bcc_name;
+	std::string email_body;
 	std::string server;
 	unsigned int port;
 	std::string subject;
