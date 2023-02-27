@@ -37,7 +37,7 @@ During the creation of your notification select the email notification plugin fr
 | |email_2| |
 +-----------+
 
-  - **Subject**: A Subject to put in the email message. Macro $NOTIFICATION_INSTANCE_NAME$ can be used in subject to provide information about notification instance name
+  - **Subject**: A Subject to put in the email message. Macro $NOTIFICATION_INSTANCE_NAME$ can be used in subject to provide information about notification instance name. Macro $REASON$ can be use to provide the reason for notification.
 
   - **Body**: A message to put in the email message
 

@@ -25,69 +25,78 @@ static const char * def_cfg = QUOTE({
 		"description" : "Email notification plugin",
 		"type" : "string",
 		"default" : PLUGIN_NAME,
-		"readonly" : "true" },
+		"readonly" : "true",
+		"group" : "Headers" },
 	"email_to" : {
 		"description" : "The comma separated address list to send the alert to",
 		"type" : "string",
 		"default" : "alert.subscriber@dianomic.com",
 		"order" : "1",
-		"displayName" : "To address"
+		"displayName" : "To address",
+		"group" : "Headers"
 		},
 	"email_to_name" : {
 		"description" : "The comma separated name list to send the alert to",
 		"type" : "string",
 		"default" : "Notification alert subscriber",
 		"order" : "2",
-		"displayName" : "To name"
+		"displayName" : "To name",
+		"group" : "Headers"
 		},
 	"email_cc" : {
 		"description" : "The comma separated address list to send the CC alert",
 		"type" : "string",
 		"default" : "alert.subscriber@dianomic.com",
 		"order" : "3",
-		"displayName" : "CC address"
+		"displayName" : "CC address",
+		"group" : "Headers"
 		},
 	"email_cc_name" : {
 		"description" : "The comma separated name list to send the CC alert",
 		"type" : "string",
 		"default" : "Notification alert subscriber",
 		"order" : "4",
-		"displayName" : "CC name"
+		"displayName" : "CC name",
+		"group" : "Headers"
 		},
 	"email_bcc" : {
 		"description" : "The comma separated address list to send the BCC alert",
 		"type" : "string",
 		"default" : "alert.subscriber@dianomic.com",
 		"order" : "5",
-		"displayName" : "BCC address"
+		"displayName" : "BCC address",
+		"group" : "Headers"
 		},
 	"email_bcc_name" : {
 		"description" : "The comma separated name list to send the BCC alert",
 		"type" : "string",
 		"default" : "Notification alert subscriber",
 		"order" : "6",
-		"displayName" : "BCC name"
+		"displayName" : "BCC name",
+		"group" : "Headers"
 		},
 	"email_from" : {
 		"description" : "The address the email will come from",
 		"type" : "string",
 		"displayName" : "From address",
 		"default" : "dianomic.alerts@gmail.com",
-		"order" : "7"
+		"order" : "7",
+		"group" : "Headers"
 		},
 	"email_from_name" : {
 		"description" : "The name used to send the alert email",
 		"type" : "string",
 		"default" : "Notification alert", 
 		"displayName" : "From name",
-		"order" : "8"
+		"order" : "8",
+		"group" : "Headers"
 		},
 	"subject" : {
-		"description" : "The email subject. Macro $NOTIFICATION_INSTANCE_NAME$ can be used to provide information about notification instance name",
+		"description" : "The email subject. Macro $NOTIFICATION_INSTANCE_NAME$ can be used to provide information about notification instance name. Macro $REASON$ can be use to provide the reason for notification.",
 		"type" : "string",
 		"displayName" : "Subject",
 		"order" : "9",
-		"default" : "Fledge alert notification sent by $NOTIFICATION_INSTANCE_NAME$ ",
+		"default" : "Fledge alert notification sent by $NOTIFICATION_INSTANCE_NAME$ $REASON$ ",
 		"group" : "Message"
 		},
 	"email_body" : {
@@ -143,7 +152,8 @@ static const char * def_cfg = QUOTE({
 		"type": "boolean",
 		"displayName" : "Enabled",
 		"default": "false", 
-		"order" : "16" }
+		"order" : "16",
+		"group" : "Headers" }
 	});
 
 using namespace std;
@@ -169,8 +179,10 @@ static PLUGIN_INFORMATION info = {
 typedef struct
 {
 	EmailCfg emailCfg;
+	bool isConfigValid;
 } PLUGIN_INFO;
 
+bool isAddressNamePairMatch = true;
 extern int sendEmailMsg(const EmailCfg *emailCfg, const char *msg);
 extern char *errorString(int result);
 extern std::vector<std::string> stringTokenize(std::string searchString ,std::regex searchPattern);
@@ -283,8 +295,56 @@ void parseConfig(ConfigCategory *config, EmailCfg *emailCfg)
 	{
 		emailCfg->password = config->getValue("password");
 	}
+
+	
 }
 
+void validateConfig(PLUGIN_HANDLE *handle, EmailCfg emailCfg)
+{
+	PLUGIN_INFO *info = (PLUGIN_INFO *) handle;
+
+	// Check for complete configuation
+	if (emailCfg.email_to == "" || emailCfg.email_from =="" || emailCfg.server == "" || emailCfg.port == 0)
+	{
+		info->isConfigValid;
+		Logger::getLogger()->error("To address, From address SMTP Server , SMTP port can not be blank. Please provide complete configuation");
+		return;
+	}
+	// Check if To address and To Names have same count
+	std::regex searhPattern("[^\\,]+");
+	std::vector<string> toAddress =  stringTokenize(emailCfg.email_to,searhPattern);
+	std::vector<string> toNames =  stringTokenize(emailCfg.email_to_name,searhPattern);
+	
+	if ( toAddress.size() != toNames.size() )
+	{
+		info->isConfigValid = false;
+		Logger::getLogger()->error("There is a mismatch between To address and To name count.");
+		return;
+	}
+
+	// Check if CC address and CC Names have same count
+	std::vector<string> ccAddress =  stringTokenize(emailCfg.email_cc,searhPattern);
+	std::vector<string> ccNames =  stringTokenize(emailCfg.email_cc_name,searhPattern);
+	
+	if ( ccAddress.size() != ccNames.size() )
+	{
+		info->isConfigValid = false;
+		Logger::getLogger()->error("There is a mismatch between CC address and CC name count.");
+		return;
+	}
+	
+	// Check if BCC address and BCC Names have same count
+	std::vector<string> bccAddress =  stringTokenize(emailCfg.email_bcc,searhPattern);
+	std::vector<string> bccNames =  stringTokenize(emailCfg.email_bcc_name,searhPattern);
+	
+	if ( bccAddress.size() != bccNames.size() )
+	{
+		info->isConfigValid = false;
+		Logger::getLogger()->error("There is a mismatch between BCC address and BCC names count.");
+		return;
+	}
+
+}
 /**
  * Initialise the plugin, called to get the plugin handle and setup the
  * plugin configuration
@@ -295,70 +355,23 @@ void parseConfig(ConfigCategory *config, EmailCfg *emailCfg)
 PLUGIN_HANDLE plugin_init(ConfigCategory* config)
 {
 	PLUGIN_INFO *info = new PLUGIN_INFO;
-
-
+	
 	// Handle plugin configuration
 	if (config)
 	{
 		Logger::getLogger()->info("Email plugin config=%s", config->toJSON().c_str());
-
+		info->isConfigValid = true;
 		resetConfig(&info->emailCfg);
 		parseConfig(config, &info->emailCfg);
 		printConfig(&info->emailCfg);
 		
-		std::regex searhPattern("[^\\,]+");
-
-		// Check if To address and To Names have same count
-		std::vector<string> toAddress =  stringTokenize(info->emailCfg.email_to,searhPattern);
-		std::vector<string> toNames =  stringTokenize(info->emailCfg.email_to_name,searhPattern);
-		
-		if ( toAddress.size() != toNames.size() )
-		{
-			Logger::getLogger()->error("There is mistach between To address and To names count, exiting...");
-			delete info;
-			info = NULL;
-			return (PLUGIN_HANDLE)info;
-		}
-
-		// Check if CC address and CC Names have same count
-		std::vector<string> ccAddress =  stringTokenize(info->emailCfg.email_cc,searhPattern);
-		std::vector<string> ccNames =  stringTokenize(info->emailCfg.email_cc_name,searhPattern);
-		
-		if ( ccAddress.size() != ccNames.size() )
-		{
-			Logger::getLogger()->error("There is mistach between cc address and cc names count, exiting...");
-			delete info;
-			info = NULL;
-			return (PLUGIN_HANDLE)info;
-		}
-		
-		// Check if BCC address and BCC Names have same count
-		std::vector<string> bccAddress =  stringTokenize(info->emailCfg.email_bcc,searhPattern);
-		std::vector<string> bccNames =  stringTokenize(info->emailCfg.email_bcc_name,searhPattern);
-		
-		if ( bccAddress.size() != bccNames.size() )
-		{
-			Logger::getLogger()->error("There is mistach between bcc address and bcc names count, exiting...");
-			delete info;
-			info = NULL;
-			return (PLUGIN_HANDLE)info;
-		}
-		
-		if (info->emailCfg.email_to == "" || info->emailCfg.server == "" || info->emailCfg.port == 0)
-		{
-			Logger::getLogger()->error("Config for email notification plugin is incomplete, exiting...");
-			delete info;
-			info = NULL;
-			return (PLUGIN_HANDLE)info;
-		}
 	}
 	else
 	{
-		Logger::getLogger()->fatal("No config provided for email plugin, exiting...");
-		delete info;
-		info = NULL;
+		info->isConfigValid = false;
+		Logger::getLogger()->fatal("No config provided for email plugin");
 	}
-	
+
 	return (PLUGIN_HANDLE)info;
 }
 
@@ -381,7 +394,31 @@ bool plugin_deliver(PLUGIN_HANDLE handle,
 							deliveryName.c_str(), notificationName.c_str(), triggerReason.c_str(), message.c_str());
 	PLUGIN_INFO *info = (PLUGIN_INFO *) handle;
 	StringReplace(info->emailCfg.subject, "$NOTIFICATION_INSTANCE_NAME$", notificationName);
-	int rv = sendEmailMsg(&info->emailCfg, info->emailCfg.email_body.c_str());
+	
+	// Parse JSON triggerReason 
+	Document doc;
+	doc.Parse(triggerReason.c_str());
+	if (doc.HasParseError())
+	{
+		Logger::getLogger()->error("Email notification delivery: failure parsing JSON trigger reason '%s'", triggerReason.c_str());
+		return false;
+	}
+
+	string reason = doc["reason"].GetString();
+
+	StringReplace(info->emailCfg.subject, "$REASON$", reason);
+
+
+	int rv = 0;
+	if (info->isConfigValid)
+	{
+		rv = sendEmailMsg(&info->emailCfg, info->emailCfg.email_body.c_str());
+	}
+	else
+	{
+		Logger::getLogger()->warn("Email delivery notification aborted due to mismatch in email Id and name count");
+	}	
+
 	if (rv)
 	{
 		Logger::getLogger()->error("Email notification failed: sendEmailMsg() returned %d, %s", rv, errorString(rv));
@@ -405,13 +442,8 @@ void plugin_reconfigure(PLUGIN_HANDLE *handle, string& newConfig)
 	Logger::getLogger()->info("Email plugin reconfig=%s", newConfig.c_str());
 
 	parseConfig(&config, &info->emailCfg);
-	
-	if (info->emailCfg.email_to == "" || info->emailCfg.server == "" || info->emailCfg.port == 0)
-	{
-		Logger::getLogger()->error("New config for email notification plugin is incomplete");
-		// How to indicate failure to caller?
-		// Maybe keep a copy of previous emailCfg structure and restore it here in case of failure
-	}
+
+	validateConfig(handle,info->emailCfg);
 	
 	return;
 }
