@@ -13,18 +13,12 @@
 struct EmailCfg {
 	std::string email_from;
 	std::string email_from_name;
-	std::string email_to;
-	std::vector<std::string> email_to_tokens;
-	std::string email_to_name;
-	std::vector<std::string> email_to_name_tokens;
-	std::string email_cc;
-	std::vector<std::string> email_cc_tokens;
-	std::string email_cc_name;
-	std::vector<std::string> email_cc_name_tokens;
-	std::string email_bcc;
-	std::vector<std::string> email_bcc_tokens;
-	std::string email_bcc_name;
-	std::vector<std::string> email_bcc_name_tokens;
+	std::vector<std::string> email_to;
+	std::vector<std::string> email_to_name;
+	std::vector<std::string> email_cc;
+	std::vector<std::string> email_cc_name;
+	std::vector<std::string> email_bcc;
+	std::vector<std::string> email_bcc_name;
 	std::string email_body;
 	std::string server;
 	unsigned int port;

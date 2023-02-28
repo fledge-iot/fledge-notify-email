@@ -58,32 +58,32 @@ void compose_payload(vector<std::string>* &payload, const EmailCfg *emailCfg, co
 	
 	// Parse address and name to compose CC pairs for payload
 	
-	if (!emailCfg->email_to.empty())
+	if (emailCfg->email_to.size())
 	{
 		std::string ToList = {"To: "};
-		for(int i = 0; i < emailCfg->email_to_tokens.size(); i++ )
+		for(int i = 0; i < emailCfg->email_to.size(); i++ )
 		{
 			if (i > 0)
 			{
 				ToList.append(",");
 			}
-			ToList.append(emailCfg->email_to_name_tokens[i] + " <" + emailCfg->email_to_tokens[i] + ">");
+			ToList.append(emailCfg->email_to_name[i] + " <" + emailCfg->email_to[i] + ">");
 		}
 		ToList.append(" \r\n");
 		payload->push_back(ToList);
 		
 	}
-
-	if (!emailCfg->email_cc.empty())
+	
+	if (emailCfg->email_cc.size())
 	{
 		std::string CCList = {"CC: "};
-		for(int i = 0; i < emailCfg->email_cc_tokens.size(); i++ )
+		for(int i = 0; i < emailCfg->email_cc.size(); i++ )
 		{
 			if (i > 0)
 			{
 				CCList.append(",");
 			}
-			CCList.append(emailCfg->email_cc_name_tokens[i] + " <" + emailCfg->email_cc_tokens[i] + ">");
+			CCList.append(emailCfg->email_cc_name[i] + " <" + emailCfg->email_cc[i] + ">");
 		}
 		CCList.append(" \r\n");
 		payload->push_back(CCList);
@@ -160,29 +160,29 @@ int sendEmailMsg(const EmailCfg *emailCfg, const char *msg)
 	
     // Parse CC and BCC list to append recipients
 	
-	if (!emailCfg->email_to.empty())
+	if (emailCfg->email_to.size())
 	{
-		for(auto it =  emailCfg->email_to_tokens.begin(); it != emailCfg->email_to_tokens.end(); it++ )
+		for(auto it =  emailCfg->email_to.begin(); it != emailCfg->email_to.end(); it++ )
 		{
-			string email_to = "<" + StringStripWhiteSpacesAll(*it) + ">";
+			string email_to = "<" + *it + ">";
 			recipients = curl_slist_append(recipients, email_to.c_str() );
 		}
 	}
 
-	if (!emailCfg->email_cc.empty())
+	if (emailCfg->email_cc.size())
 	{
-		for(auto it =  emailCfg->email_cc_tokens.begin(); it != emailCfg->email_cc_tokens.end(); it++ )
+		for(auto it =  emailCfg->email_cc.begin(); it != emailCfg->email_cc.end(); it++ )
 		{
-			string email_cc = "<" + StringStripWhiteSpacesAll(*it) + ">";
+			string email_cc = "<" + *it + ">";
 			recipients = curl_slist_append(recipients, email_cc.c_str() );
 		}
 	}
 
-	if (!emailCfg->email_bcc.empty())
+	if (emailCfg->email_bcc.size())
 	{
-		for(auto it =  emailCfg->email_bcc_tokens.begin(); it != emailCfg->email_bcc_tokens.end(); it++ )
+		for(auto it =  emailCfg->email_bcc.begin(); it != emailCfg->email_bcc.end(); it++ )
 		{
-			string email_bcc = "<" + StringStripWhiteSpacesAll(*it) + ">";
+			string email_bcc = "<" + *it + ">";
 			recipients = curl_slist_append(recipients, email_bcc.c_str() );
 		}
 	}

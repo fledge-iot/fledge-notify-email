@@ -96,7 +96,7 @@ static const char * def_cfg = QUOTE({
 		"type" : "string",
 		"displayName" : "Subject",
 		"order" : "9",
-		"default" : "Fledge alert notification sent by $NOTIFICATION_INSTANCE_NAME$ $REASON$ ",
+		"default" : "Fledge alert notification sent by $NOTIFICATION_INSTANCE_NAME$ - $REASON$ ",
 		"group" : "Message"
 		},
 	"email_body" : {
@@ -199,28 +199,22 @@ PLUGIN_INFORMATION *plugin_info()
  */
 void resetConfig(EmailCfg *emailCfg)
 {
-	emailCfg->email_from = "";
-	emailCfg->email_from_name = "";
-	emailCfg->email_to = "";
-	emailCfg->email_to_name = "";
-	emailCfg->email_cc = "";
-	emailCfg->email_cc_name = "";
-	emailCfg->email_bcc = "";
-	emailCfg->email_bcc_name = "";
-	emailCfg->email_body = "";
-	emailCfg->server = "";
+	emailCfg->email_from.clear();
+	emailCfg->email_from_name.clear();
+	emailCfg->email_to.clear();
+	emailCfg->email_to_name.clear();
+	emailCfg->email_cc.clear();
+	emailCfg->email_cc_name.clear();
+	emailCfg->email_bcc.clear();
+	emailCfg->email_bcc_name.clear();
+	emailCfg->email_body.clear();
+	emailCfg->server.clear();
 	emailCfg->port = 0;
-	emailCfg->subject = "";
+	emailCfg->subject.clear();
 	emailCfg->use_ssl_tls = false;
-	emailCfg->username = "";
-	emailCfg->password = "";
+	emailCfg->username.clear();
+	emailCfg->password.clear();
 
-	emailCfg->email_to_tokens.clear();
-	emailCfg->email_to_name_tokens.clear();
-	emailCfg->email_cc_tokens.clear();
-	emailCfg->email_cc_name_tokens.clear();
-	emailCfg->email_bcc_tokens.clear();
-	emailCfg->email_bcc_name_tokens.clear();
 }
 
 /**
@@ -228,19 +222,66 @@ void resetConfig(EmailCfg *emailCfg)
  */
 void printConfig(EmailCfg *emailCfg)
 {
-	Logger::getLogger()->info("email_from=%s,  email_to=%s",
+	std::string to;
+	for(auto  it =  emailCfg->email_to.begin(); it != emailCfg->email_to.end(); it++ )
+	{
+		to.append(*it);
+		to.append(",");
+	}
+	std::string cc;
+	for(auto  it =  emailCfg->email_cc.begin(); it != emailCfg->email_cc.end(); it++ )
+	{
+		cc.append(*it);
+		cc.append(",");
+	}
+	std::string bcc;
+	for(auto  it =  emailCfg->email_bcc.begin(); it != emailCfg->email_bcc.end(); it++ )
+	{
+		bcc.append(*it);
+		bcc.append(",");
+	}
+
+	
+	Logger::getLogger()->info("email_from=%s,  email_to=%s email_cc=%s email_bcc=%s ",
 						emailCfg->email_from.c_str(), 
-						emailCfg->email_to.c_str());
-	Logger::getLogger()->info("server=%s, port=%d, subject=%s, use_ssl_tls=%s, username=%s, password=%s",
-						emailCfg->server.c_str(), emailCfg->port, emailCfg->subject.c_str(), 
+						to.c_str(),
+						cc.c_str(),
+						bcc.c_str());
+	 Logger::getLogger()->info("server=%s, port=%d, subject=%s, body=%s use_ssl_tls=%s, username=%s, password=%s",
+						emailCfg->server.c_str(), emailCfg->port, emailCfg->subject.c_str(), emailCfg->email_body.c_str(),
 						emailCfg->use_ssl_tls?"true":"false", emailCfg->username.c_str(), emailCfg->password.c_str());
 }
+
+/**
+ * Tokenize sting
+ */
+std::vector<std::string> stringTokenize(std::string searchString ,std::regex searchPattern)
+{
+	std::vector<std::string> vec;
+	auto token_start = std::sregex_iterator(searchString.begin(), searchString.end(), searchPattern);
+	auto token_end = std::sregex_iterator();
+	for (std::sregex_iterator i = token_start; i != token_end; ++i)
+	{
+		std::smatch match = *i;
+		std::string matchValue = match.str();
+		//Don't populate blank values
+		matchValue = StringStripWhiteSpacesAll(matchValue);
+		if (matchValue.size())
+		{
+			vec.emplace_back(matchValue);
+		}
+	}
+	return vec;
+
+}
+
 
 /**
  * Fill EmailCfg structure from JSON document representing email server/account config
  */
 void parseConfig(ConfigCategory *config, EmailCfg *emailCfg)
 {
+	std::regex searchPattern("[^\\,]+");
 	if (config->itemExists("email_from"))
 	{
 		emailCfg->email_from = config->getValue("email_from");
@@ -251,27 +292,33 @@ void parseConfig(ConfigCategory *config, EmailCfg *emailCfg)
 	}
 	if (config->itemExists("email_to"))
 	{
-		emailCfg->email_to = config->getValue("email_to");
+		emailCfg->email_to.clear();
+		emailCfg->email_to = stringTokenize(config->getValue("email_to"),searchPattern); 
 	}
 	if (config->itemExists("email_to_name"))
 	{
-		emailCfg->email_to_name = config->getValue("email_to_name");
+		emailCfg->email_to_name.clear();
+		emailCfg->email_to_name = stringTokenize(config->getValue("email_to_name"),searchPattern); 
 	}
 	if (config->itemExists("email_cc"))
 	{
-		emailCfg->email_cc = config->getValue("email_cc");
+		emailCfg->email_cc.clear();
+		emailCfg->email_cc = stringTokenize(config->getValue("email_cc"),searchPattern); 
 	}
 	if (config->itemExists("email_cc_name"))
 	{
-		emailCfg->email_cc_name = config->getValue("email_cc_name");
+		emailCfg->email_cc_name.clear();
+		emailCfg->email_cc_name = stringTokenize(config->getValue("email_cc_name"),searchPattern); 
 	}
 	if (config->itemExists("email_bcc"))
 	{
-		emailCfg->email_bcc = config->getValue("email_bcc");
+		emailCfg->email_bcc.clear();
+		emailCfg->email_bcc = stringTokenize(config->getValue("email_bcc"),searchPattern); 
 	}
 	if (config->itemExists("email_bcc_name"))
 	{
-		emailCfg->email_bcc_name = config->getValue("email_bcc_name");
+		emailCfg->email_bcc_name.clear();
+		emailCfg->email_bcc_name = stringTokenize(config->getValue("email_bcc_name"),searchPattern); 
 	}
 	if (config->itemExists("email_body"))
 	{
@@ -305,23 +352,6 @@ void parseConfig(ConfigCategory *config, EmailCfg *emailCfg)
 	
 }
 
-/**
- * Tokenize sting
- */
-std::vector<std::string> stringTokenize(std::string searchString ,std::regex searchPattern)
-{
-	std::vector<std::string> vec;
-	auto token_start = std::sregex_iterator(searchString.begin(), searchString.end(), searchPattern);
-	auto token_end = std::sregex_iterator();
-	for (std::sregex_iterator i = token_start; i != token_end; ++i)
-	{
-		std::smatch match = *i;
-		std::string matchValue = match.str();
-		vec.emplace_back(matchValue);
-	}
-	return vec;
-
-}
 
 /**
  * Validate count of email address and name pairs 
@@ -330,49 +360,35 @@ void validateConfig(PLUGIN_HANDLE *handle, EmailCfg *emailCfg)
 {
 	PLUGIN_INFO *info = (PLUGIN_INFO *) handle;
 	// Check for complete configuration
-	if (emailCfg->email_to == "" || emailCfg->email_from =="" || emailCfg->server == "" || emailCfg->port == 0)
+	int addressCheckSum = emailCfg->email_to.size() + emailCfg->email_cc.size() + emailCfg->email_bcc.size() ;
+	
+	if ( addressCheckSum == 0 || StringStripWhiteSpacesAll(emailCfg->email_from) =="" || StringStripWhiteSpacesAll(emailCfg->server) == "" || emailCfg->port == 0)
 	{
-		info->isConfigValid;
+		info->isConfigValid = false;
 		Logger::getLogger()->error("To address, From address SMTP Server , SMTP port can not be blank. Please provide complete configuration");
 		return;
 	}
-	// Check if To address and To Names have same count
-	std::regex searchPattern("[^\\,]+");
+	// Check if To address and To name have same count
 	
-	//clear old data
-	emailCfg->email_to_tokens.clear();
-	emailCfg->email_to_name_tokens.clear();
-	emailCfg->email_cc_tokens.clear();
-	emailCfg->email_cc_name_tokens.clear();
-	emailCfg->email_bcc_tokens.clear();
-	emailCfg->email_bcc_name_tokens.clear();
-
-	emailCfg->email_to_tokens =  stringTokenize(emailCfg->email_to,searchPattern);
-	emailCfg->email_to_name_tokens =  stringTokenize(emailCfg->email_to_name,searchPattern);
-	
-	if ( emailCfg->email_to_tokens.size() != emailCfg->email_to_name_tokens.size() )
+	if ( emailCfg->email_to.size() != emailCfg->email_to_name.size() )
 	{
 		info->isConfigValid = false;
 		Logger::getLogger()->error("There is a mismatch between To address and To name count.");
 		return;
 	}
 
-	// Check if CC address and CC Names have same count
-	emailCfg->email_cc_tokens =  stringTokenize(emailCfg->email_cc,searchPattern);
-	emailCfg->email_cc_name_tokens =  stringTokenize(emailCfg->email_cc_name,searchPattern);
+	// Check if CC address and CC name have same count
 	
-	if ( emailCfg->email_cc_tokens.size() != emailCfg->email_cc_name_tokens.size() )
+	if ( emailCfg->email_cc.size() != emailCfg->email_cc_name.size() )
 	{
 		info->isConfigValid = false;
 		Logger::getLogger()->error("There is a mismatch between CC address and CC name count.");
 		return;
 	}
 	
-	// Check if BCC address and BCC Names have same count
-	emailCfg->email_bcc_tokens =  stringTokenize(emailCfg->email_bcc,searchPattern);
-	emailCfg->email_bcc_name_tokens =  stringTokenize(emailCfg->email_bcc_name,searchPattern);
+	// Check if BCC address and BCC name have same count
 	
-	if ( emailCfg->email_bcc_tokens.size() != emailCfg->email_bcc_name_tokens.size() )
+	if ( emailCfg->email_bcc.size() != emailCfg->email_bcc_name.size() )
 	{
 		info->isConfigValid = false;
 		Logger::getLogger()->error("There is a mismatch between BCC address and BCC names count.");
@@ -479,6 +495,7 @@ void plugin_reconfigure(PLUGIN_HANDLE *handle, string& newConfig)
 
 	parseConfig(&config, &info->emailCfg);
 	validateConfig(handle,&info->emailCfg);
+	
 	
 	return;
 }
