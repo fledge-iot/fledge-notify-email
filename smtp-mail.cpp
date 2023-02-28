@@ -155,7 +155,7 @@ int sendEmailMsg(const EmailCfg *emailCfg, const char *msg)
 		//curl_easy_setopt(curl, CURLOPT_CAINFO, "/path/to/certificate.pem");
 	 }
 	
-    string email_from = "<" + StringStripWhiteSpacesAll(emailCfg->email_from) + ">";
+    string email_from = "<" + emailCfg->email_from + ">";
     curl_easy_setopt(curl, CURLOPT_MAIL_FROM, email_from.c_str());
 	
     // Parse CC and BCC list to append recipients

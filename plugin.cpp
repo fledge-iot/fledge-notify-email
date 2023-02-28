@@ -265,7 +265,7 @@ std::vector<std::string> stringTokenize(std::string searchString ,std::regex sea
 		std::smatch match = *i;
 		std::string matchValue = match.str();
 		//Don't populate blank values
-		matchValue = StringStripWhiteSpacesAll(matchValue);
+		matchValue = StringRTrim(StringLTrim(matchValue));
 		if (matchValue.size())
 		{
 			vec.emplace_back(matchValue);
@@ -284,7 +284,7 @@ void parseConfig(ConfigCategory *config, EmailCfg *emailCfg)
 	std::regex searchPattern("[^\\,]+");
 	if (config->itemExists("email_from"))
 	{
-		emailCfg->email_from = config->getValue("email_from");
+		emailCfg->email_from = StringStripWhiteSpacesAll(config->getValue("email_from"));
 	}
 	if (config->itemExists("email_from_name"))
 	{
@@ -326,7 +326,7 @@ void parseConfig(ConfigCategory *config, EmailCfg *emailCfg)
 	}
 	if (config->itemExists("server"))
 	{
-		emailCfg->server = config->getValue("server");
+		emailCfg->server = StringStripWhiteSpacesAll(config->getValue("server"));
 	}
 	if (config->itemExists("port"))
 	{
@@ -360,12 +360,25 @@ void validateConfig(PLUGIN_HANDLE *handle, EmailCfg *emailCfg)
 {
 	PLUGIN_INFO *info = (PLUGIN_INFO *) handle;
 	// Check for complete configuration
-	int addressCheckSum = emailCfg->email_to.size() + emailCfg->email_cc.size() + emailCfg->email_bcc.size() ;
+	int numRecipients = emailCfg->email_to.size() + emailCfg->email_cc.size() + emailCfg->email_bcc.size() ;
 	
-	if ( addressCheckSum == 0 || StringStripWhiteSpacesAll(emailCfg->email_from) =="" || StringStripWhiteSpacesAll(emailCfg->server) == "" || emailCfg->port == 0)
+	if ( numRecipients == 0) 
 	{
 		info->isConfigValid = false;
-		Logger::getLogger()->error("To address, From address SMTP Server , SMTP port can not be blank. Please provide complete configuration");
+		Logger::getLogger()->error("Recipient is missing");
+		return;
+	}
+
+	if ( emailCfg->email_from.empty())
+	{
+		info->isConfigValid = false;
+		Logger::getLogger()->error("Sender is missing");
+		return;
+	}
+	if (emailCfg->server.empty() || emailCfg->port == 0)
+	{
+		info->isConfigValid = false;
+		Logger::getLogger()->error("SMTP Server , SMTP port can not be blank");
 		return;
 	}
 	// Check if To address and To name have same count
