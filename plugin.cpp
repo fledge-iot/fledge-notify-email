@@ -185,7 +185,6 @@ typedef struct
 bool isAddressNamePairMatch = true;
 extern int sendEmailMsg(const EmailCfg *emailCfg, const char *msg);
 extern char *errorString(int result);
-extern std::vector<std::string> stringTokenize(std::string searchString ,std::regex searchPattern);
 
 /**
  * Return the information about this plugin
@@ -215,6 +214,13 @@ void resetConfig(EmailCfg *emailCfg)
 	emailCfg->use_ssl_tls = false;
 	emailCfg->username = "";
 	emailCfg->password = "";
+
+	emailCfg->email_to_tokens.clear();
+	emailCfg->email_to_name_tokens.clear();
+	emailCfg->email_cc_tokens.clear();
+	emailCfg->email_cc_name_tokens.clear();
+	emailCfg->email_bcc_tokens.clear();
+	emailCfg->email_bcc_name_tokens.clear();
 }
 
 /**
@@ -299,23 +305,52 @@ void parseConfig(ConfigCategory *config, EmailCfg *emailCfg)
 	
 }
 
-void validateConfig(PLUGIN_HANDLE *handle, EmailCfg emailCfg)
+/**
+ * Tokenize sting
+ */
+std::vector<std::string> stringTokenize(std::string searchString ,std::regex searchPattern)
+{
+	std::vector<std::string> vec;
+	auto token_start = std::sregex_iterator(searchString.begin(), searchString.end(), searchPattern);
+	auto token_end = std::sregex_iterator();
+	for (std::sregex_iterator i = token_start; i != token_end; ++i)
+	{
+		std::smatch match = *i;
+		std::string matchValue = match.str();
+		vec.emplace_back(matchValue);
+	}
+	return vec;
+
+}
+
+/**
+ * Validate count of email address and name pairs 
+ */
+void validateConfig(PLUGIN_HANDLE *handle, EmailCfg *emailCfg)
 {
 	PLUGIN_INFO *info = (PLUGIN_INFO *) handle;
-
-	// Check for complete configuation
-	if (emailCfg.email_to == "" || emailCfg.email_from =="" || emailCfg.server == "" || emailCfg.port == 0)
+	// Check for complete configuration
+	if (emailCfg->email_to == "" || emailCfg->email_from =="" || emailCfg->server == "" || emailCfg->port == 0)
 	{
 		info->isConfigValid;
-		Logger::getLogger()->error("To address, From address SMTP Server , SMTP port can not be blank. Please provide complete configuation");
+		Logger::getLogger()->error("To address, From address SMTP Server , SMTP port can not be blank. Please provide complete configuration");
 		return;
 	}
 	// Check if To address and To Names have same count
-	std::regex searhPattern("[^\\,]+");
-	std::vector<string> toAddress =  stringTokenize(emailCfg.email_to,searhPattern);
-	std::vector<string> toNames =  stringTokenize(emailCfg.email_to_name,searhPattern);
+	std::regex searchPattern("[^\\,]+");
 	
-	if ( toAddress.size() != toNames.size() )
+	//clear old data
+	emailCfg->email_to_tokens.clear();
+	emailCfg->email_to_name_tokens.clear();
+	emailCfg->email_cc_tokens.clear();
+	emailCfg->email_cc_name_tokens.clear();
+	emailCfg->email_bcc_tokens.clear();
+	emailCfg->email_bcc_name_tokens.clear();
+
+	emailCfg->email_to_tokens =  stringTokenize(emailCfg->email_to,searchPattern);
+	emailCfg->email_to_name_tokens =  stringTokenize(emailCfg->email_to_name,searchPattern);
+	
+	if ( emailCfg->email_to_tokens.size() != emailCfg->email_to_name_tokens.size() )
 	{
 		info->isConfigValid = false;
 		Logger::getLogger()->error("There is a mismatch between To address and To name count.");
@@ -323,10 +358,10 @@ void validateConfig(PLUGIN_HANDLE *handle, EmailCfg emailCfg)
 	}
 
 	// Check if CC address and CC Names have same count
-	std::vector<string> ccAddress =  stringTokenize(emailCfg.email_cc,searhPattern);
-	std::vector<string> ccNames =  stringTokenize(emailCfg.email_cc_name,searhPattern);
+	emailCfg->email_cc_tokens =  stringTokenize(emailCfg->email_cc,searchPattern);
+	emailCfg->email_cc_name_tokens =  stringTokenize(emailCfg->email_cc_name,searchPattern);
 	
-	if ( ccAddress.size() != ccNames.size() )
+	if ( emailCfg->email_cc_tokens.size() != emailCfg->email_cc_name_tokens.size() )
 	{
 		info->isConfigValid = false;
 		Logger::getLogger()->error("There is a mismatch between CC address and CC name count.");
@@ -334,10 +369,10 @@ void validateConfig(PLUGIN_HANDLE *handle, EmailCfg emailCfg)
 	}
 	
 	// Check if BCC address and BCC Names have same count
-	std::vector<string> bccAddress =  stringTokenize(emailCfg.email_bcc,searhPattern);
-	std::vector<string> bccNames =  stringTokenize(emailCfg.email_bcc_name,searhPattern);
+	emailCfg->email_bcc_tokens =  stringTokenize(emailCfg->email_bcc,searchPattern);
+	emailCfg->email_bcc_name_tokens =  stringTokenize(emailCfg->email_bcc_name,searchPattern);
 	
-	if ( bccAddress.size() != bccNames.size() )
+	if ( emailCfg->email_bcc_tokens.size() != emailCfg->email_bcc_name_tokens.size() )
 	{
 		info->isConfigValid = false;
 		Logger::getLogger()->error("There is a mismatch between BCC address and BCC names count.");
@@ -364,6 +399,7 @@ PLUGIN_HANDLE plugin_init(ConfigCategory* config)
 		resetConfig(&info->emailCfg);
 		parseConfig(config, &info->emailCfg);
 		printConfig(&info->emailCfg);
+		validateConfig((PLUGIN_HANDLE*)info,&info->emailCfg);
 		
 	}
 	else
@@ -371,7 +407,7 @@ PLUGIN_HANDLE plugin_init(ConfigCategory* config)
 		info->isConfigValid = false;
 		Logger::getLogger()->fatal("No config provided for email plugin");
 	}
-
+	
 	return (PLUGIN_HANDLE)info;
 }
 
@@ -442,8 +478,7 @@ void plugin_reconfigure(PLUGIN_HANDLE *handle, string& newConfig)
 	Logger::getLogger()->info("Email plugin reconfig=%s", newConfig.c_str());
 
 	parseConfig(&config, &info->emailCfg);
-
-	validateConfig(handle,info->emailCfg);
+	validateConfig(handle,&info->emailCfg);
 	
 	return;
 }
