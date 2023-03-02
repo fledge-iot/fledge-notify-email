@@ -33,7 +33,8 @@ static const char * def_cfg = QUOTE({
 		"default" : "alert.subscriber@dianomic.com",
 		"order" : "1",
 		"displayName" : "To address",
-		"group" : "Headers"
+		"group" : "Headers",
+		"mandatory" : "true"
 		},
 	"email_to_name" : {
 		"description" : "The comma separated name list to send the alert to",
@@ -41,7 +42,8 @@ static const char * def_cfg = QUOTE({
 		"default" : "Notification alert subscriber",
 		"order" : "2",
 		"displayName" : "To name",
-		"group" : "Headers"
+		"group" : "Headers",
+		"mandatory" : "true"
 		},
 	"email_cc" : {
 		"description" : "The comma separated address list to send the CC alert",
@@ -81,7 +83,8 @@ static const char * def_cfg = QUOTE({
 		"displayName" : "From address",
 		"default" : "dianomic.alerts@gmail.com",
 		"order" : "7",
-		"group" : "Headers"
+		"group" : "Headers",
+		"mandatory" : "true"
 		},
 	"email_from_name" : {
 		"description" : "The name used to send the alert email",
@@ -89,7 +92,8 @@ static const char * def_cfg = QUOTE({
 		"default" : "Notification alert", 
 		"displayName" : "From name",
 		"order" : "8",
-		"group" : "Headers"
+		"group" : "Headers",
+		"mandatory" : "true"
 		},
 	"subject" : {
 		"description" : "The email subject. Macro $NOTIFICATION_INSTANCE_NAME$ can be used to provide information about notification instance name. Macro $REASON$ can be use to provide the reason for notification.",
@@ -100,11 +104,11 @@ static const char * def_cfg = QUOTE({
 		"group" : "Message"
 		},
 	"email_body" : {
-		"description" : "The email body",
+		"description" : "The email body. Macro $MESSAGE$ can be used to provide text message received from service. Macro $NOTIFICATION_INSTANCE_NAME$ can be used to provide information about notification instance name. Macro $REASON$ can be use to provide the reason for notification.",
 		"type" : "string",
 		"displayName" : "Body",
 		"order" : "10",
-		"default" : "Notification alert",
+		"default" : "$MESSAGE$ sent by $NOTIFICATION_INSTANCE_NAME$, Reason is $REASON$",
 		"group" : "Message"
 		},	
 	"server" : {
@@ -113,7 +117,8 @@ static const char * def_cfg = QUOTE({
 		"displayName" : "SMTP Server",
 		"order" : "11",
 		"default" : "smtp.gmail.com",
-		"group" : "Mail Server"
+		"group" : "Mail Server",
+		"mandatory" : "true"
 		},
 	"port" : {
 		"description" : "The SMTP server port",
@@ -121,7 +126,8 @@ static const char * def_cfg = QUOTE({
 		"displayName" : "SMTP Port",
 		"order" : "12",
 		"default" : "587",
-		"group" : "Mail Server"
+		"group" : "Mail Server",
+		"mandatory" : "true"
 		},
 	"use_ssl_tls" : {
 		"description" : "Use SSL/TLS for email transfer",
@@ -365,20 +371,20 @@ void validateConfig(PLUGIN_HANDLE *handle, EmailCfg *emailCfg)
 	if ( numRecipients == 0) 
 	{
 		info->isConfigValid = false;
-		Logger::getLogger()->error("Recipient is missing");
+		Logger::getLogger()->error("No valid recipient email address(es)");
 		return;
 	}
 
 	if ( emailCfg->email_from.empty())
 	{
 		info->isConfigValid = false;
-		Logger::getLogger()->error("Sender is missing");
+		Logger::getLogger()->error("Sender email address is missing");
 		return;
 	}
 	if (emailCfg->server.empty() || emailCfg->port == 0)
 	{
 		info->isConfigValid = false;
-		Logger::getLogger()->error("SMTP Server , SMTP port can not be blank");
+		Logger::getLogger()->error("Invalid Email server/port configuration");
 		return;
 	}
 	// Check if To address and To name have same count
@@ -458,7 +464,6 @@ bool plugin_deliver(PLUGIN_HANDLE handle,
 	Logger::getLogger()->info("Email notification plugin_deliver(): deliveryName=%s, notificationName=%s, triggerReason=%s, message=%s",
 							deliveryName.c_str(), notificationName.c_str(), triggerReason.c_str(), message.c_str());
 	PLUGIN_INFO *info = (PLUGIN_INFO *) handle;
-	StringReplace(info->emailCfg.subject, "$NOTIFICATION_INSTANCE_NAME$", notificationName);
 	
 	// Parse JSON triggerReason 
 	Document doc;
@@ -468,16 +473,23 @@ bool plugin_deliver(PLUGIN_HANDLE handle,
 		Logger::getLogger()->error("Email notification delivery: failure parsing JSON trigger reason '%s'", triggerReason.c_str());
 		return false;
 	}
-
+	
+	// Replace Macros for subject
+	StringReplace(info->emailCfg.subject, "$NOTIFICATION_INSTANCE_NAME$", notificationName);
 	string reason = doc["reason"].GetString();
 
 	StringReplace(info->emailCfg.subject, "$REASON$", reason);
 
+	// Replace Macros for email body
+	std::string emailBody = info->emailCfg.email_body.c_str();
+	StringReplace(emailBody, "$MESSAGE$", message);
+	StringReplace(emailBody, "$REASON$", reason);
+	StringReplace(emailBody, "$NOTIFICATION_INSTANCE_NAME$", notificationName);
 
 	int rv = 0;
 	if (info->isConfigValid)
 	{
-		rv = sendEmailMsg(&info->emailCfg, info->emailCfg.email_body.c_str());
+		rv = sendEmailMsg(&info->emailCfg, emailBody.c_str());
 	}
 	else
 	{
