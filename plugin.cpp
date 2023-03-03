@@ -481,7 +481,7 @@ bool plugin_deliver(PLUGIN_HANDLE handle,
 	StringReplace(info->emailCfg.subject, "$REASON$", reason);
 
 	// Replace Macros for email body
-	std::string emailBody = info->emailCfg.email_body.c_str();
+	std::string emailBody = info->emailCfg.email_body;
 	StringReplace(emailBody, "$MESSAGE$", message);
 	StringReplace(emailBody, "$REASON$", reason);
 	StringReplace(emailBody, "$NOTIFICATION_INSTANCE_NAME$", notificationName);
