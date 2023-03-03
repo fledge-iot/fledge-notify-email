@@ -365,6 +365,7 @@ void parseConfig(ConfigCategory *config, EmailCfg *emailCfg)
 void validateConfig(PLUGIN_HANDLE *handle, EmailCfg *emailCfg)
 {
 	PLUGIN_INFO *info = (PLUGIN_INFO *) handle;
+	info->isConfigValid = true;
 	// Check for complete configuration
 	int numRecipients = emailCfg->email_to.size() + emailCfg->email_cc.size() + emailCfg->email_bcc.size() ;
 	
