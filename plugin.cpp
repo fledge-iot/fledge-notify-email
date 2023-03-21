@@ -495,17 +495,18 @@ bool plugin_deliver(PLUGIN_HANDLE handle,
 	else
 	{
 		Logger::getLogger()->warn("Email delivery notification aborted due to mismatch in email Id and name count");
+		return false;
 	}	
 
 	if (rv)
 	{
 		Logger::getLogger()->error("Email notification failed: sendEmailMsg() returned %d, %s", rv, errorString(rv));
-		return true;
+		return false;
 	}
 	else
 	{
 		Logger::getLogger()->info("sendEmailMsg() returned SUCCESS");
-		return false;
+		return true;
 	}
 }
 
