@@ -27,6 +27,7 @@
 #include <curl/curl.h>
 #include <email_config.h>
 #include <logger.h>
+#include "string_utils.h"
 
 using namespace std;
 
@@ -50,12 +51,48 @@ char *getCurrTime()
 	return buffer;
 }
 
+
 void compose_payload(vector<std::string>* &payload, const EmailCfg *emailCfg, const char* msg)
 {
 	payload->push_back("Date: " + string(getCurrTime()) + "\r\n");
-	payload->push_back("To: " + emailCfg->email_to_name + " <" + emailCfg->email_to + "> \r\n");
+	
+	// Parse address and name to compose CC pairs for payload
+	
+	if (emailCfg->email_to.size())
+	{
+		std::string ToList = {"To: "};
+		for(int i = 0; i < emailCfg->email_to.size(); i++ )
+		{
+			if (i > 0)
+			{
+				ToList.append(",");
+			}
+			ToList.append(emailCfg->email_to_name[i] + " <" + emailCfg->email_to[i] + ">");
+		}
+		ToList.append(" \r\n");
+		payload->push_back(ToList);
+		
+	}
+	
+	if (emailCfg->email_cc.size())
+	{
+		std::string CCList = {"CC: "};
+		for(int i = 0; i < emailCfg->email_cc.size(); i++ )
+		{
+			if (i > 0)
+			{
+				CCList.append(",");
+			}
+			CCList.append(emailCfg->email_cc_name[i] + " <" + emailCfg->email_cc[i] + ">");
+		}
+		CCList.append(" \r\n");
+		payload->push_back(CCList);
+		
+	}
+	
+	// Do not add BCC payload otherwise it will be visible to all the recipients
+	
 	payload->push_back("From: " + emailCfg->email_from_name + " <" + emailCfg->email_from + "> \r\n");
-	//payload->push_back("Message-ID: <" + emailCfg->messageId + ">\r\n");
 	payload->push_back("Subject: " + emailCfg->subject + "\r\n");
 	payload->push_back("\r\n");
 	payload->push_back(msg);
@@ -120,10 +157,36 @@ int sendEmailMsg(const EmailCfg *emailCfg, const char *msg)
 	
     string email_from = "<" + emailCfg->email_from + ">";
     curl_easy_setopt(curl, CURLOPT_MAIL_FROM, email_from.c_str());
+	
+    // Parse CC and BCC list to append recipients
+	
+	if (emailCfg->email_to.size())
+	{
+		for(auto it =  emailCfg->email_to.begin(); it != emailCfg->email_to.end(); it++ )
+		{
+			string email_to = "<" + *it + ">";
+			recipients = curl_slist_append(recipients, email_to.c_str() );
+		}
+	}
 
-    string email_to = "<" + emailCfg->email_to + ">";
-    recipients = curl_slist_append(recipients, email_to.c_str());
-    //recipients = curl_slist_append(recipients, CC_ADDR);
+	if (emailCfg->email_cc.size())
+	{
+		for(auto it =  emailCfg->email_cc.begin(); it != emailCfg->email_cc.end(); it++ )
+		{
+			string email_cc = "<" + *it + ">";
+			recipients = curl_slist_append(recipients, email_cc.c_str() );
+		}
+	}
+
+	if (emailCfg->email_bcc.size())
+	{
+		for(auto it =  emailCfg->email_bcc.begin(); it != emailCfg->email_bcc.end(); it++ )
+		{
+			string email_bcc = "<" + *it + ">";
+			recipients = curl_slist_append(recipients, email_bcc.c_str() );
+		}
+	}
+
     curl_easy_setopt(curl, CURLOPT_MAIL_RCPT, recipients);
 
     /* We're using a callback function to specify the payload (the headers and
